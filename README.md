@@ -29,6 +29,16 @@
 
 <h1 align="center">Rollup</h1>
 
+## Note
+
+This is testing version of incremental rebuild with reuse data from previous build/rebuild. Use only with disabled tree-shaking and with stable chunk names w/o hash.
+
+Changes:
+
+- Fixed use of cache when start in watch mode
+- Reuse built graph on rebuild and force refresh changed modules
+- Filter chunks by changed modules in generation phase
+
 ## Overview
 
 Rollup is a module bundler for JavaScript which compiles small pieces of code into something larger and more complex, such as a library or application. It uses the standardized ES module format for code, instead of previous idiosyncratic solutions such as CommonJS and AMD. ES modules let you freely and seamlessly combine the most useful individual functions from your favorite libraries. Rollup can optimize ES modules for faster native loading in modern browsers, or output a legacy module format allowing ES module workflows today.

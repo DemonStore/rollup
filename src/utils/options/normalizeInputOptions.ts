@@ -61,6 +61,7 @@ export async function normalizeInputOptions(
 		experimentalCacheExpiry: config.experimentalCacheExpiry ?? 10,
 		experimentalLogSideEffects: config.experimentalLogSideEffects || false,
 		external: getIdMatcher(config.external),
+		graph: undefined,
 		inlineDynamicImports: getInlineDynamicImports(config, onLog, strictDeprecations),
 		input: getInput(config),
 		logLevel,

@@ -137,6 +137,7 @@ function mergeInputOptions(
 		experimentalCacheExpiry: getOption('experimentalCacheExpiry'),
 		experimentalLogSideEffects: getOption('experimentalLogSideEffects'),
 		external: getExternal(config, overrides),
+		graph: config.graph,
 		inlineDynamicImports: getOption('inlineDynamicImports'),
 		input: getOption('input') || [],
 		logLevel: getOption('logLevel'),

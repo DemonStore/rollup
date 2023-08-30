@@ -8,6 +8,7 @@ import type {
 	OutputOptions,
 	RollupBuild,
 	RollupCache,
+	RollupWatchChanges,
 	RollupWatcher,
 	WatcherOptions
 } from '../rollup/types';
@@ -92,10 +93,11 @@ export class Watcher {
 				await Promise.all(
 					[...this.invalidatedIds].map(([id, event]) => this.emitter.emit('change', id, { event }))
 				);
+				const changes = [...this.invalidatedIds].map(index => index[0]);
 				this.invalidatedIds.clear();
 				await this.emitter.emit('restart');
 				this.emitter.removeListenersForCurrentRun();
-				this.run();
+				this.run(changes);
 			} catch (error: any) {
 				this.invalidatedIds.clear();
 				await this.emitter.emit('event', {
@@ -110,14 +112,14 @@ export class Watcher {
 		}, this.buildDelay);
 	}
 
-	private async run(): Promise<void> {
+	private async run(changes?: RollupWatchChanges): Promise<void> {
 		this.running = true;
 		await this.emitter.emit('event', {
 			code: 'START'
 		});
 
 		for (const task of this.tasks) {
-			await task.run();
+			await task.run(changes);
 		}
 
 		this.running = false;
@@ -132,7 +134,8 @@ export class Watcher {
 }
 
 export class Task {
-	cache: RollupCache = { modules: [] };
+	cache: RollupCache;
+	graph: any;
 	watchFiles: string[] = [];
 
 	private closed = false;
@@ -149,6 +152,8 @@ export class Task {
 	constructor(watcher: Watcher, options: MergedRollupOptions) {
 		this.watcher = watcher;
 		this.options = options;
+		this.cache = typeof options.cache === 'object' ? options.cache : { modules: [] };
+		this.graph = options.graph;
 
 		this.skipWrite = Boolean(options.watch && options.watch.skipWrite);
 		this.outputs = this.options.output;
@@ -183,13 +188,14 @@ export class Task {
 		this.watcher.invalidate({ event: details.event, id });
 	}
 
-	async run(): Promise<void> {
+	async run(changes?: RollupWatchChanges): Promise<void> {
 		if (!this.invalidated) return;
 		this.invalidated = false;
 
 		const options = {
 			...this.options,
-			cache: this.cache
+			cache: this.cache,
+			graph: this.graph
 		};
 
 		const start = Date.now();
@@ -202,10 +208,11 @@ export class Task {
 		let result: RollupBuild | null = null;
 
 		try {
-			result = await rollupInternal(options, this.watcher.emitter);
+			result = await rollupInternal(options, this.watcher.emitter, changes);
 			if (this.closed) {
 				return;
 			}
+			this.graph = result.graph;
 			this.updateWatchedFiles(result);
 			this.skipWrite || (await Promise.all(this.outputs.map(output => result!.write(output))));
 			await this.watcher.emitter.emit('event', {

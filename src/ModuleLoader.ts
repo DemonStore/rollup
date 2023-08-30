@@ -422,6 +422,32 @@ export class ModuleLoader {
 		return module;
 	}
 
+	public async reloadModule(id: string) {
+		const module = this.modulesById.get(id);
+		if (module instanceof Module) {
+			this.modulesWithLoadedDependencies.delete(module);
+			const loadPromise: LoadModulePromise = this.addModuleSource(
+				module.id,
+				undefined,
+				module
+			).then(() => [
+				this.getResolveStaticDependencyPromises(module),
+				this.getResolveDynamicImportPromises(module),
+				loadAndResolveDependenciesPromise
+			]);
+			const loadAndResolveDependenciesPromise = waitForDependencyResolution(loadPromise).then(() =>
+				this.pluginDriver.hookParallel('moduleParsed', [module.info])
+			);
+			loadAndResolveDependenciesPromise.catch(() => {
+				/* avoid unhandled promise rejections */
+			});
+			const resolveDependencyPromises = await loadPromise;
+			await this.fetchModuleDependencies(module, ...resolveDependencyPromises);
+			//module.addModulesToImportDescriptions(module.importDescriptions);
+			return module;
+		}
+	}
+
 	private async fetchModuleDependencies(
 		module: Module,
 		resolveStaticDependencyPromises: readonly ResolveStaticDependencyPromise[],

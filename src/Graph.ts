@@ -10,6 +10,7 @@ import type {
 	ModuleJSON,
 	NormalizedInputOptions,
 	RollupCache,
+	RollupWatchChanges,
 	RollupWatcher,
 	SerializablePluginCache,
 	WatchChangeHook
@@ -74,6 +75,8 @@ export default class Graph {
 	private modules: Module[] = [];
 	private declare pluginCache?: Record<string, SerializablePluginCache>;
 
+	changes?: RollupWatchChanges;
+
 	constructor(
 		private readonly options: NormalizedInputOptions,
 		watcher: RollupWatcher | null
@@ -106,7 +109,15 @@ export default class Graph {
 		this.pureFunctions = getPureFunctions(options);
 	}
 
-	async build(): Promise<void> {
+	async build(changes?: RollupWatchChanges): Promise<void> {
+		// Force reload of changed modules
+		this.changes = changes;
+		if (this.changes) {
+			for (const ch of this.changes) {
+				await this.moduleLoader.reloadModule(ch);
+			}
+		}
+
 		timeStart('generate module graph', 2);
 		await this.generateModuleGraph();
 		timeEnd('generate module graph', 2);

@@ -1413,6 +1413,10 @@ export default class Chunk {
 			}
 		}
 	}
+
+	getModules(): string[] {
+		return this.orderedModules.map(({ id }) => id);
+	}
 }
 
 function getChunkNameFromModule(module: Module): string {

@@ -568,6 +568,7 @@ export interface InputOptions {
 	acorn?: Record<string, unknown>;
 	acornInjectPlugins?: ((...arguments_: any[]) => unknown)[] | ((...arguments_: any[]) => unknown);
 	cache?: boolean | RollupCache;
+	graph?: any;
 	context?: string;
 	experimentalCacheExpiry?: number;
 	experimentalLogSideEffects?: boolean;
@@ -609,6 +610,7 @@ export interface NormalizedInputOptions {
 	experimentalCacheExpiry: number;
 	experimentalLogSideEffects: boolean;
 	external: IsExternal;
+	graph?: any;
 	/** @deprecated Use the "inlineDynamicImports" output option instead. */
 	inlineDynamicImports: boolean | undefined;
 	input: string[] | { [entryAlias: string]: string };
@@ -880,6 +882,7 @@ export interface RollupOutput {
 
 export interface RollupBuild {
 	cache: RollupCache | undefined;
+	graph: any;
 	close: () => Promise<void>;
 	closed: boolean;
 	generate: (outputOptions: OutputOptions) => Promise<RollupOutput>;
@@ -990,6 +993,8 @@ export type RollupWatcher = AwaitingEventEmitter<{
 	event: (event: RollupWatcherEvent) => void;
 	restart: () => void;
 }>;
+
+export type RollupWatchChanges = string[];
 
 export function watch(config: RollupWatchOptions | RollupWatchOptions[]): RollupWatcher;
 

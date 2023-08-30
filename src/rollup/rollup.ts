@@ -34,6 +34,7 @@ import type {
 	RollupOptions,
 	RollupOptionsFunction,
 	RollupOutput,
+	RollupWatchChanges,
 	RollupWatcher
 } from './types';
 
@@ -43,7 +44,8 @@ export default function rollup(rawInputOptions: RollupOptions): Promise<RollupBu
 
 export async function rollupInternal(
 	rawInputOptions: RollupOptions,
-	watcher: RollupWatcher | null
+	watcher: RollupWatcher | null,
+	changes?: RollupWatchChanges
 ): Promise<RollupBuild> {
 	const { options: inputOptions, unsetOptions: unsetInputOptions } = await getInputOptions(
 		rawInputOptions,
@@ -51,7 +53,7 @@ export async function rollupInternal(
 	);
 	initialiseTimers(inputOptions);
 
-	const graph = new Graph(inputOptions, watcher);
+	const graph = rawInputOptions.graph || new Graph(inputOptions, watcher);
 
 	// remove the cache object from the memory after graph creation (cache is not used anymore)
 	const useCache = rawInputOptions.cache !== false;
@@ -67,7 +69,7 @@ export async function rollupInternal(
 			timeStart('initialize', 2);
 			await graph.pluginDriver.hookParallel('buildStart', [inputOptions]);
 			timeEnd('initialize', 2);
-			await graph.build();
+			await graph.build(changes);
 		} catch (error_: any) {
 			const watchFiles = Object.keys(graph.watchFiles);
 			if (watchFiles.length > 0) {
@@ -97,6 +99,7 @@ export async function rollupInternal(
 
 			return handleGenerateWrite(false, inputOptions, unsetInputOptions, rawOutputOptions, graph);
 		},
+		graph,
 		watchFiles: Object.keys(graph.watchFiles),
 		async write(rawOutputOptions: OutputOptions) {
 			if (result.closed) return error(logAlreadyClosed());

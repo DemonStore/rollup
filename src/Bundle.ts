@@ -71,11 +71,15 @@ export default class Bundle {
 			for (const chunk of chunks) {
 				chunk.generateExports();
 			}
-
 			timeEnd('generate chunks', 2);
 
+			// Filter chunks for render
+			const chunksForRender: Chunk[] = this.graph.changes
+				? chunks.filter(chunk => chunk.getModules().some(id => this.graph.changes?.includes(id)))
+				: chunks;
+
 			await renderChunks(
-				chunks,
+				chunksForRender,
 				outputBundle,
 				this.pluginDriver,
 				this.outputOptions,
@@ -87,6 +91,12 @@ export default class Bundle {
 		}
 
 		removeUnreferencedAssets(outputBundle);
+
+		// Remove placeholder chunks before generate
+		const bundleEntries = Object.entries(outputBundle);
+		for (const [id, chunk] of bundleEntries) {
+			if (chunk.type === 'placeholder') delete outputBundle[id];
+		}
 
 		timeStart('generate bundle', 2);
 
