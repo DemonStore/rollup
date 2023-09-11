@@ -74,10 +74,10 @@ export default class Bundle {
 			timeEnd('generate chunks', 2);
 
 			// Filter chunks for render
-			const chunksForRender: Chunk[] = this.graph.changes
-				? chunks.filter(chunk => chunk.getModules().some(id => this.graph.changes?.includes(id)))
-				: chunks;
-
+			const chunksForRender: Chunk[] = chunks.filter(chunk => {
+				const modules = chunk.getModules();
+				return modules.some(module => module.modified);
+			});
 			await renderChunks(
 				chunksForRender,
 				outputBundle,

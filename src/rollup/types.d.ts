@@ -117,6 +117,7 @@ export interface TransformModuleJSON {
 }
 
 export interface ModuleJSON extends TransformModuleJSON, ModuleOptions {
+	mtime: string | undefined;
 	ast: AcornNode;
 	dependencies: string[];
 	id: string;
@@ -874,6 +875,7 @@ export interface SerializablePluginCache {
 export interface RollupCache {
 	modules: ModuleJSON[];
 	plugins?: Record<string, SerializablePluginCache>;
+	resolvedIds?: Record<string, ResolveIdResult>;
 }
 
 export interface RollupOutput {

@@ -1414,8 +1414,8 @@ export default class Chunk {
 		}
 	}
 
-	getModules(): string[] {
-		return this.orderedModules.map(({ id }) => id);
+	getModules(): Module[] {
+		return this.orderedModules.map(m => m);
 	}
 }
 

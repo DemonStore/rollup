@@ -258,6 +258,8 @@ export default class Module {
 	private syntheticNamespace: Variable | null | undefined = null;
 	private transformDependencies: string[] = [];
 	private transitiveReexports: string[] | null = null;
+	modified: boolean = true;
+	mtime?: string;
 
 	constructor(
 		private readonly graph: Graph,
@@ -919,6 +921,7 @@ export default class Module {
 			id: this.id,
 			meta: this.info.meta,
 			moduleSideEffects: this.info.moduleSideEffects,
+			mtime: this.mtime,
 			originalCode: this.originalCode,
 			originalSourcemap: this.originalSourcemap,
 			resolvedIds: this.resolvedIds,

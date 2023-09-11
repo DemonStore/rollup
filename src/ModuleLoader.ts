@@ -17,7 +17,7 @@ import type {
 } from './rollup/types';
 import type { PluginDriver } from './utils/PluginDriver';
 import { EMPTY_OBJECT } from './utils/blank';
-import { readFile } from './utils/fs';
+import { readFile, stat } from './utils/fs';
 import { LOGLEVEL_WARN } from './utils/logging';
 import {
 	error,
@@ -85,13 +85,16 @@ export class ModuleLoader {
 	private readonly modulesWithLoadedDependencies = new Set<Module>();
 	private nextChunkNamePriority = 0;
 	private nextEntryModuleIndex = 0;
+	private readonly resolveCache: Map<string, ResolveIdResult>;
 
 	constructor(
 		private readonly graph: Graph,
 		private readonly modulesById: Map<string, Module | ExternalModule>,
 		private readonly options: NormalizedInputOptions,
-		private readonly pluginDriver: PluginDriver
+		private readonly pluginDriver: PluginDriver,
+		resolveCache?: Record<string, ResolveIdResult>
 	) {
+		this.resolveCache = new Map(resolveCache ? Object.entries(resolveCache) : null);
 		this.hasModuleSideEffects = options.treeshake
 			? options.treeshake.moduleSideEffects
 			: () => true;
@@ -267,17 +270,36 @@ export class ModuleLoader {
 		module: Module
 	): Promise<void> {
 		let source: LoadResult;
-		try {
-			source = await this.graph.fileOperationQueue.run(
-				async () =>
-					(await this.pluginDriver.hookFirst('load', [id])) ?? (await readFile(id, 'utf8'))
-			);
-		} catch (error_: any) {
-			let message = `Could not load ${id}`;
-			if (importer) message += ` (imported by ${relativeId(importer)})`;
-			message += `: ${error_.message}`;
-			error_.message = message;
-			throw error_;
+		const cachedModule = this.graph.cachedModules.get(id);
+		const cmtime = cachedModule?.mtime;
+		//make file modify timestamp check
+		let mtime;
+		if (!id.startsWith('\0') && !/\?[\w-]+/.test(id)) {
+			try {
+				const info = await stat(id);
+				mtime = info?.mtime.toJSON();
+			} catch {
+				//nope
+			}
+			module.mtime = mtime;
+		}
+		if (!cachedModule || cmtime != mtime || this.graph.changes?.includes(id)) {
+			try {
+				source = await this.graph.fileOperationQueue.run(
+					async () =>
+						(await this.pluginDriver.hookFirst('load', [id])) ?? (await readFile(id, 'utf8'))
+				);
+			} catch (error_: any) {
+				let message = `Could not load ${id}`;
+				if (importer) message += ` (imported by ${relativeId(importer)})`;
+				message += `: ${error_.message}`;
+				error_.message = message;
+				throw error_;
+			}
+			module.modified = true;
+		} else {
+			source = cachedModule.originalCode;
+			module.modified = false;
 		}
 		const sourceDescription =
 			typeof source === 'string'
@@ -285,7 +307,6 @@ export class ModuleLoader {
 				: source != null && typeof source === 'object' && typeof source.code === 'string'
 				? source
 				: error(logBadLoader(id));
-		const cachedModule = this.graph.cachedModules.get(id);
 		if (
 			cachedModule &&
 			!cachedModule.customTransformCache &&
@@ -422,6 +443,7 @@ export class ModuleLoader {
 		return module;
 	}
 
+	//TODO: remove w/o graph reuse
 	public async reloadModule(id: string) {
 		const module = this.modulesById.get(id);
 		if (module instanceof Module) {
@@ -680,17 +702,21 @@ export class ModuleLoader {
 		implicitlyLoadedBefore: string | null,
 		isLoadForManualChunks = false
 	): Promise<Module> {
-		const resolveIdResult = await resolveId(
-			unresolvedId,
-			importer,
-			this.options.preserveSymlinks,
-			this.pluginDriver,
-			this.resolveId,
-			null,
-			EMPTY_OBJECT,
-			true,
-			EMPTY_OBJECT
-		);
+		const key = [unresolvedId, importer].join('|');
+		const cachedId = this.resolveCache.get(key);
+		const resolveIdResult =
+			cachedId ??
+			(await resolveId(
+				unresolvedId,
+				importer,
+				this.options.preserveSymlinks,
+				this.pluginDriver,
+				this.resolveId,
+				null,
+				EMPTY_OBJECT,
+				true,
+				EMPTY_OBJECT
+			));
 		if (resolveIdResult == null) {
 			return error(
 				implicitlyLoadedBefore === null
@@ -708,6 +734,7 @@ export class ModuleLoader {
 					: logImplicitDependantCannotBeExternal(unresolvedId, implicitlyLoadedBefore)
 			);
 		}
+		if (!cachedId) this.resolveCache.set(key, resolveIdResult);
 		return this.fetchModule(
 			this.getResolvedIdWithDefaults(
 				typeof resolveIdResult === 'object'
@@ -776,6 +803,9 @@ export class ModuleLoader {
 			importer,
 			assertions
 		);
+	}
+	getCache() {
+		return Object.fromEntries(this.resolveCache);
 	}
 }
 

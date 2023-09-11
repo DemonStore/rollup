@@ -9,6 +9,7 @@ import type {
 	ModuleInfo,
 	ModuleJSON,
 	NormalizedInputOptions,
+	ResolveIdResult,
 	RollupCache,
 	RollupWatchChanges,
 	RollupWatcher,
@@ -76,7 +77,7 @@ export default class Graph {
 	private declare pluginCache?: Record<string, SerializablePluginCache>;
 
 	changes?: RollupWatchChanges;
-
+	resolvedIds?: Record<string, ResolveIdResult>;
 	constructor(
 		private readonly options: NormalizedInputOptions,
 		watcher: RollupWatcher | null
@@ -86,7 +87,7 @@ export default class Graph {
 				for (const module of options.cache.modules) this.cachedModules.set(module.id, module);
 			}
 			this.pluginCache = options.cache?.plugins || Object.create(null);
-
+			this.resolvedIds = options.cache?.resolvedIds;
 			// increment access counter
 			for (const name in this.pluginCache) {
 				const cache = this.pluginCache[name];
@@ -104,7 +105,13 @@ export default class Graph {
 		}
 		this.pluginDriver = new PluginDriver(this, options, options.plugins, this.pluginCache);
 		this.acornParser = acorn.Parser.extend(...(options.acornInjectPlugins as any[]));
-		this.moduleLoader = new ModuleLoader(this, this.modulesById, this.options, this.pluginDriver);
+		this.moduleLoader = new ModuleLoader(
+			this,
+			this.modulesById,
+			this.options,
+			this.pluginDriver,
+			this.resolvedIds
+		);
 		this.fileOperationQueue = new Queue(options.maxParallelFileOps);
 		this.pureFunctions = getPureFunctions(options);
 	}
@@ -176,7 +183,8 @@ export default class Graph {
 
 		return {
 			modules: this.modules.map(module => module.toJSON()),
-			plugins: this.pluginCache
+			plugins: this.pluginCache,
+			resolvedIds: this.moduleLoader.getCache()
 		};
 	}
 
