@@ -443,6 +443,16 @@ export class ModuleLoader {
 		return module;
 	}
 
+	async fixBinds(module: Module) {
+		for (const mid of module.importers) {
+			const importer = this.modulesById.get(mid);
+			if (importer instanceof Module) {
+				importer.bindReferences();
+				await this.fixBinds(importer);
+			}
+		}
+	}
+
 	//TODO: remove w/o graph reuse
 	public async reloadModule(id: string) {
 		const module = this.modulesById.get(id);
@@ -465,7 +475,10 @@ export class ModuleLoader {
 			});
 			const resolveDependencyPromises = await loadPromise;
 			await this.fetchModuleDependencies(module, ...resolveDependencyPromises);
-			//module.addModulesToImportDescriptions(module.importDescriptions);
+
+			//fix variables in ast tree in dependencies
+			await this.fixBinds(module);
+
 			return module;
 		}
 	}
@@ -702,21 +715,18 @@ export class ModuleLoader {
 		implicitlyLoadedBefore: string | null,
 		isLoadForManualChunks = false
 	): Promise<Module> {
-		const key = [unresolvedId, importer].join('|');
-		const cachedId = this.resolveCache.get(key);
-		const resolveIdResult =
-			cachedId ??
-			(await resolveId(
-				unresolvedId,
-				importer,
-				this.options.preserveSymlinks,
-				this.pluginDriver,
-				this.resolveId,
-				null,
-				EMPTY_OBJECT,
-				true,
-				EMPTY_OBJECT
-			));
+		const resolveIdResult = await resolveId(
+			unresolvedId,
+			importer,
+			this.options.preserveSymlinks,
+			this.pluginDriver,
+			this.resolveId,
+			null,
+			EMPTY_OBJECT,
+			true,
+			EMPTY_OBJECT,
+			this.resolveCache
+		);
 		if (resolveIdResult == null) {
 			return error(
 				implicitlyLoadedBefore === null
@@ -734,7 +744,6 @@ export class ModuleLoader {
 					: logImplicitDependantCannotBeExternal(unresolvedId, implicitlyLoadedBefore)
 			);
 		}
-		if (!cachedId) this.resolveCache.set(key, resolveIdResult);
 		return this.fetchModule(
 			this.getResolvedIdWithDefaults(
 				typeof resolveIdResult === 'object'

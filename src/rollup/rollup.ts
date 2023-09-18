@@ -54,7 +54,7 @@ export async function rollupInternal(
 	initialiseTimers(inputOptions);
 
 	//TODO: try to reuse graph from previous build
-	const graph = /*rawInputOptions.graph ||*/ new Graph(inputOptions, watcher);
+	const graph = rawInputOptions.graph || new Graph(inputOptions, watcher);
 
 	// remove the cache object from the memory after graph creation (cache is not used anymore)
 	const useCache = rawInputOptions.cache !== false;

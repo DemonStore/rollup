@@ -19,6 +19,7 @@ export default class ExternalModule {
 	private readonly declarations = new Map<string, ExternalVariable>();
 	private mostCommonSuggestion = 0;
 	private readonly nameSuggestions = new Map<string, number>();
+	modified = false;
 
 	constructor(
 		private readonly options: NormalizedInputOptions,

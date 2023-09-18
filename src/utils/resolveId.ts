@@ -14,8 +14,12 @@ export async function resolveId(
 	skip: readonly { importer: string | undefined; plugin: Plugin; source: string }[] | null,
 	customOptions: CustomPluginOptions | undefined,
 	isEntry: boolean,
-	assertions: Record<string, string>
+	assertions: Record<string, string>,
+	resolveCache?: Map<string, ResolveIdResult>
 ): Promise<ResolveIdResult> {
+	const key = [source, importer].join('|');
+	const cachedId = resolveCache?.get(key);
+	if (cachedId) return cachedId;
 	const pluginResult = await resolveIdViaPlugins(
 		source,
 		importer,
@@ -28,19 +32,20 @@ export async function resolveId(
 	);
 
 	if (pluginResult != null) {
-		const [resolveIdResult, plugin] = pluginResult;
+		let [resolveIdResult, plugin] = pluginResult;
 		if (typeof resolveIdResult === 'object' && !resolveIdResult.resolvedBy) {
-			return {
+			resolveIdResult = {
 				...resolveIdResult,
 				resolvedBy: plugin.name
 			};
 		}
 		if (typeof resolveIdResult === 'string') {
-			return {
+			resolveIdResult = {
 				id: resolveIdResult,
 				resolvedBy: plugin.name
 			};
 		}
+		resolveCache?.set(key, resolveIdResult);
 		return resolveIdResult;
 	}
 
