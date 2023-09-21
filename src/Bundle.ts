@@ -78,6 +78,21 @@ export default class Bundle {
 				const modules = chunk.getModules();
 				return modules.some(module => module.modified);
 			});
+
+			// Recursively add chunks by dependencies
+			const addByDependencies = (targetChunk: Chunk) => {
+				const toAdd = chunks.filter(
+					chunk => chunk.getDependencies().has(targetChunk) && !chunksForRender.includes(chunk)
+				);
+				chunksForRender.push(...toAdd);
+				for (const targetChunk of toAdd) {
+					addByDependencies(targetChunk);
+				}
+			};
+			for (const targetChunk of chunksForRender) {
+				addByDependencies(targetChunk);
+			}
+
 			await renderChunks(
 				chunksForRender,
 				outputBundle,

@@ -1417,6 +1417,10 @@ export default class Chunk {
 	getModules(): Module[] {
 		return this.orderedModules.map(m => m);
 	}
+
+	getDependencies(): Set<Chunk | ExternalChunk> {
+		return this.dependencies;
+	}
 }
 
 function getChunkNameFromModule(module: Module): string {
