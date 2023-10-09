@@ -1,6 +1,6 @@
 {
-  "name": "@yandex-int/rollup",
-  "version": "3.28.1-mod.11",
+  "name": "rollup",
+  "version": "3.28.1-mod.13",
   "description": "Next-generation ES module bundler [modified]",
   "main": "dist/rollup.js",
   "module": "dist/es/rollup.js",

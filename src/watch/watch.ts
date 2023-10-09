@@ -251,7 +251,11 @@ export class Task {
 		}
 		for (const module of this.cache.modules) {
 			for (const depId of module.transformDependencies) {
-				this.watchFile(depId, true);
+				if (previouslyWatched.has(depId)) {
+					this.watched.add(depId);
+				} else {
+					this.watchFile(depId, true);
+				}
 			}
 		}
 		for (const id of previouslyWatched) {
