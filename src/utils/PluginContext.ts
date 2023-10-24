@@ -59,7 +59,7 @@ export function getPluginContext(
 
 	return {
 		addWatchFile(id) {
-			if (graph.phase >= BuildPhase.GENERATE) {
+			if (graph.phase > BuildPhase.GENERATE) {
 				return this.error(logInvalidRollupPhaseForAddWatchFile());
 			}
 			graph.watchFiles[id] = true;
