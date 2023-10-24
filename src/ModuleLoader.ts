@@ -296,7 +296,7 @@ export class ModuleLoader {
 				error_.message = message;
 				throw error_;
 			}
-			module.modified = true;
+			module.modified = id[0] !== '\0';
 		} else {
 			source = cachedModule.originalCode;
 			module.modified = false;

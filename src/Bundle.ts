@@ -76,6 +76,8 @@ export default class Bundle {
 			// Filter chunks for render
 			const chunksForRender: Chunk[] = chunks.filter(chunk => {
 				const modules = chunk.getModules();
+				// Render chunks with all modules virtual
+				if (modules.every(module => module.id[0] === '\0')) return true;
 				return modules.some(module => module.modified);
 			});
 
