@@ -443,12 +443,14 @@ export class ModuleLoader {
 		return module;
 	}
 
-	async fixBinds(module: Module) {
+	async fixBinds(module: Module, fixed?: Set<string>) {
+		fixed = fixed ?? new Set();
 		for (const mid of module.importers) {
 			const importer = this.modulesById.get(mid);
-			if (importer instanceof Module) {
+			if (importer instanceof Module && !fixed.has(importer.id)) {
+				fixed.add(importer.id);
 				importer.bindReferences();
-				await this.fixBinds(importer);
+				await this.fixBinds(importer, fixed);
 			}
 		}
 	}
