@@ -389,6 +389,14 @@ export default class Module {
 		});
 	}
 
+	resetCaches(): void {
+		this.allExportNames = null;
+		this.relevantDependencies = null;
+		this.exportNamesByVariable = null;
+		this.transitiveReexports = null;
+		this.syntheticNamespace = null;
+	}
+
 	basename(): string {
 		const base = basename(this.id);
 		const extension = extname(this.id);

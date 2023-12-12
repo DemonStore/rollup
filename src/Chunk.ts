@@ -1414,8 +1414,8 @@ export default class Chunk {
 		}
 	}
 
-	getModules(): Module[] {
-		return this.orderedModules.map(m => m);
+	getModules(): readonly Module[] {
+		return this.orderedModules;
 	}
 
 	getDependencies(): Set<Chunk | ExternalChunk> {

@@ -459,6 +459,7 @@ export class ModuleLoader {
 	public async reloadModule(id: string) {
 		const module = this.modulesById.get(id);
 		if (module instanceof Module) {
+			module.resetCaches();
 			this.modulesWithLoadedDependencies.delete(module);
 			const loadPromise: LoadModulePromise = this.addModuleSource(
 				module.id,
