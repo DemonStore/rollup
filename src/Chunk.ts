@@ -196,7 +196,7 @@ export default class Chunk {
 	private strictFacade = false;
 
 	constructor(
-		private readonly orderedModules: readonly Module[],
+		readonly orderedModules: readonly Module[],
 		private readonly inputOptions: NormalizedInputOptions,
 		private readonly outputOptions: NormalizedOutputOptions,
 		private readonly unsetOptions: ReadonlySet<string>,

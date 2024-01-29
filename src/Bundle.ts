@@ -73,6 +73,17 @@ export default class Bundle {
 			}
 			timeEnd('generate chunks', 2);
 
+			// mark modules with changed filenames as modified
+			for (const chunk of chunks) {
+				const chunkFileName = chunk.getFileName();
+				for (const module of chunk.orderedModules) {
+					if (module.chunkFileName !== null && module.chunkFileName !== chunkFileName) {
+						module.modified = true;
+					}
+					module.chunkFileName = chunkFileName;
+				}
+			}
+
 			// Filter chunks for render
 			const chunksForRender: Chunk[] = chunks.filter(chunk => {
 				const modules = chunk.getModules();
@@ -224,6 +235,15 @@ export default class Bundle {
 					experimentalMinChunkSize,
 					this.inputOptions.onLog
 			  )) {
+			// mark merged in another way modules as modified
+			const mergedWith = modules.length;
+			for (const module of modules) {
+				if (module.mergedWith !== null && module.mergedWith !== mergedWith) {
+					module.modified = true;
+				}
+				module.mergedWith = mergedWith;
+			}
+
 			sortByExecutionOrder(modules);
 			const chunk = new Chunk(
 				modules,

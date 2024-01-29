@@ -260,6 +260,8 @@ export default class Module {
 	private transitiveReexports: string[] | null = null;
 	modified: boolean = true;
 	mtime?: string;
+	mergedWith: null | number = null;
+	chunkFileName: null | string = null;
 
 	constructor(
 		private readonly graph: Graph,
